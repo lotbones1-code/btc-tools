@@ -1,10 +1,21 @@
 # Shared core logic used by both Streamlit and Colab
+import argparse
 import ccxt
 import pandas as pd
-from datetime import datetime
 import pytz
+import yaml
+from datetime import datetime
+from pathlib import Path
 
 TZ = pytz.timezone('America/Denver')
+
+
+def load_settings(path: str | None = None):
+    """Load YAML settings from conf/settings.yml."""
+    if path is None:
+        path = Path(__file__).resolve().parent / "conf" / "settings.yml"
+    with open(path, "r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
 
 def _exchange():
@@ -71,13 +82,61 @@ def classify_signal(row):
     return 'Neutral'
 
 
-def latest_snapshot(timeframe='1h'):
-    df = add_indicators(fetch_ohlcv(timeframe))
+def latest_snapshot(timeframe='1h', limit=500):
+    df = add_indicators(fetch_ohlcv(timeframe, limit=limit))
     last = df.iloc[-1]
     sig = classify_signal(last)
     now = datetime.now(TZ).strftime('%Y-%m-%d %H:%M:%S')
     return df, sig, now
 
 
+def main():
+    parser = argparse.ArgumentParser(description="BTC Quant CLI")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--live", action="store_true", help="Run live signal snapshot")
+    group.add_argument("--backtest", type=int, metavar="DAYS", help="Run backtest stub for DAYS")
+    group.add_argument("--test", action="store_true", help="Run CLI self-test")
+    parser.add_argument(
+        "--report",
+        nargs="?",
+        const="",
+        default=None,
+        help="Generate report folder (optional path)",
+    )
+    args = parser.parse_args()
+
+    if args.test:
+        print(">>> Codex Sync Test OK <<<")
+        return
+
+    settings = load_settings()
+
+    if args.report is not None:
+        base = args.report or settings.get("logging", {}).get("dir", "logs")
+        timestamp = datetime.now(TZ).strftime("%Y%m%d_%H%M%S")
+        report_dir = Path(base) / timestamp
+        report_dir.mkdir(parents=True, exist_ok=True)
+        with open(report_dir / "config_used.yml", "w", encoding="utf-8") as fh:
+            yaml.safe_dump(settings, fh)
+
+    timeframe = settings.get("timeframe", "1h")
+    limit = settings.get("limit", 500)
+
+    if args.live:
+        df = add_indicators(fetch_ohlcv(timeframe=timeframe, limit=limit))
+        sig = classify_signal(df.iloc[-1])
+        print(sig)
+        return
+
+    if args.backtest is not None:
+        print(f"Backtest stub DAYS={args.backtest}")
+        return
+
+    # Default behavior
+    df, sig, now = latest_snapshot(timeframe=timeframe, limit=limit)
+    print(df.tail())
+    print(f"Signal: {sig} at {now}")
+
+
 if __name__ == "__main__":
-    print(">>> Codex Sync Test OK <<<")
+    main()

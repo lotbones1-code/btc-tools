@@ -1,0 +1,18 @@
+exchange: binance
+symbol: BTC/USDT
+timeframe: 1h
+limit: 1000
+fees_bps: 2.5
+slippage_bps: 1.0
+risk:
+  mode: fixed_notional
+  notional_usd: 1000
+  max_leverage: 3
+stops:
+  type: atr
+  atr_mult: 2.0
+backtest:
+  days: 365
+  seed: 42
+logging:
+  dir: logs

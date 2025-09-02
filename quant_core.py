@@ -77,3 +77,7 @@ def latest_snapshot(timeframe='1h'):
     sig = classify_signal(last)
     now = datetime.now(TZ).strftime('%Y-%m-%d %H:%M:%S')
     return df, sig, now
+
+
+if __name__ == "__main__":
+    print(">>> Codex Sync Test OK <<<")

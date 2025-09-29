@@ -35,7 +35,44 @@ st.markdown(
 )
 
 # ---------- Data fetch ----------
-df, sig, now = latest_snapshot(timeframe)
+if "snapshot" not in st.session_state:
+    st.session_state["snapshot"] = None
+    st.session_state["snapshot_timeframe"] = None
+    st.session_state["snapshot_cached_at"] = None
+
+if st.session_state["snapshot_timeframe"] != timeframe:
+    st.session_state["snapshot"] = None
+    st.session_state["snapshot_cached_at"] = None
+    st.session_state["snapshot_timeframe"] = timeframe
+
+error_message = None
+
+try:
+    snapshot = latest_snapshot(timeframe)
+    st.session_state["snapshot"] = snapshot
+    st.session_state["snapshot_cached_at"] = datetime.now(TZ)
+except Exception as exc:  # noqa: BLE001 - we want to show any failure to the user
+    error_message = str(exc)
+    snapshot = st.session_state.get("snapshot")
+
+if snapshot is None:
+    st.error("Unable to load market data right now. Retrying shortly...")
+    if error_message:
+        st.caption(error_message)
+    time.sleep(refresh_s)
+    st.experimental_rerun()
+
+df, sig, now = snapshot
+
+if error_message:
+    cached_at = st.session_state.get("snapshot_cached_at")
+    if cached_at is not None:
+        st.warning(
+            "Showing cached data from "
+            f"{cached_at.strftime('%Y-%m-%d %H:%M:%S %Z')} due to a fetch error."
+        )
+        st.caption(error_message)
+
 last = df.iloc[-1]
 close_val = float(last["close"])
 rsi_val = float(last["RSI"])

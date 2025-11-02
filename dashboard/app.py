@@ -141,6 +141,102 @@ if referral_link_raw:
         unsafe_allow_html=True,
     )
 
+with st.expander("Need help pitching your referral?", expanded=False):
+    st.markdown(
+        """
+        Use this helper to tailor a short, persuasive pitch you can share in
+        communities or with friends who might benefit from trying the browser.
+        Fill in the blanks based on what makes the offer compelling, then copy
+        the generated message into chats, emails, or posts.
+        """
+    )
+
+    pitch_defaults = {
+        "audience": "privacy-focused traders",
+        "pain_point": "feeling overwhelmed by slow, ad-heavy browsers",
+        "benefit": "a clean, fast trading experience with built-in crypto tools",
+        "incentive": referral_benefit or "extra signup bonuses",
+        "tone": "Friendly",
+    }
+
+    if "referral_pitch" not in st.session_state:
+        st.session_state["referral_pitch"] = pitch_defaults
+
+    with st.form("referral_pitch_form"):
+        col_a, col_b = st.columns(2)
+        audience = col_a.text_input(
+            "Ideal audience",
+            value=st.session_state["referral_pitch"].get("audience", pitch_defaults["audience"]),
+            help="Who are you hoping to reach?",
+        )
+        pain_point = col_b.text_input(
+            "Problem they face",
+            value=st.session_state["referral_pitch"].get(
+                "pain_point", pitch_defaults["pain_point"]
+            ),
+            help="What are they frustrated with today?",
+        )
+        benefit = col_a.text_input(
+            "Key benefit",
+            value=st.session_state["referral_pitch"].get("benefit", pitch_defaults["benefit"]),
+            help="How will this browser make their life better?",
+        )
+        incentive = col_b.text_input(
+            "Signup incentive",
+            value=st.session_state["referral_pitch"].get(
+                "incentive", pitch_defaults["incentive"]
+            ),
+            help="Mention perks, rewards, or bonuses.",
+        )
+        tone = col_a.selectbox(
+            "Tone",
+            ["Friendly", "Professional", "Enthusiastic", "Direct"],
+            index=["Friendly", "Professional", "Enthusiastic", "Direct"].index(
+                st.session_state["referral_pitch"].get("tone", pitch_defaults["tone"])
+            ),
+        )
+        specific_link = col_b.text_input(
+            "Referral link to include",
+            value=safe_link or referral_link_raw or "https://example.com/your-referral",
+            help="Make sure this matches the URL you want people to visit.",
+        )
+
+        submitted = st.form_submit_button("Generate pitch")
+
+    if submitted:
+        st.session_state["referral_pitch"] = {
+            "audience": audience,
+            "pain_point": pain_point,
+            "benefit": benefit,
+            "incentive": incentive,
+            "tone": tone,
+            "link": specific_link,
+        }
+
+        tone_prefix = {
+            "Friendly": "Hey there",
+            "Professional": "Hello",
+            "Enthusiastic": "You have to see this",
+            "Direct": "Quick heads-up",
+        }
+
+        opener = tone_prefix.get(tone, "Hey")
+        hook = f"If you're {pain_point}, give this browser a try."
+        benefit_line = f"It was built for {audience} who want {benefit}."
+        incentive_line = f"Use my link for {incentive}: {specific_link}."
+        follow_up = "Let me know if you want tips after you sign up!"
+
+        st.success(
+            "\n\n".join([opener + "!", hook, benefit_line, incentive_line, follow_up])
+        )
+
+    if "referral_pitch" in st.session_state and not submitted:
+        last_pitch = st.session_state["referral_pitch"]
+        if "link" in last_pitch:
+            st.info(
+                "Copy your last pitch above or adjust the fields to refresh it."
+            )
+
 # ---------- Data fetch ----------
 if "snapshot" not in st.session_state:
     st.session_state["snapshot"] = None

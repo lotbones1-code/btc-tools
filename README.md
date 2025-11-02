@@ -39,6 +39,8 @@ Additional optional variables let you tailor the marketing copy to match your of
 
 When the variables are present, the app renders a gradient card at the top of the page and a matching button in the sidebar so visitors see your invite link right away.
 
+Need ideas for how to pitch the offer elsewhere? Open the **"Need help pitching your referral?"** expander in the app to tailor a ready-to-send snippet. Provide details about your audience, the pain points you solve, and the incentive, then copy the generated message into an email, community post, or DM.
+
 ## Exporting data
 
 Select your preferred timeframe, then use the “Download CSV” button beneath the table to export the latest indicator readings for further analysis.

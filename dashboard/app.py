@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from quant_core import TZ, add_indicators, classify_signal, latest_snapshot
+from quant_core import TZ, add_indicators, classify_signal, latest_snapshot, load_settings
 
 st.set_page_config(page_title="BTC Quant Dashboard", layout="wide")
 
@@ -28,11 +28,23 @@ safe_link = ""
 safe_cta = ""
 
 st.sidebar.title("Controls")
-timeframe = st.sidebar.selectbox("Timeframe", ["5m", "15m", "1h", "4h", "1d"], index=2)
+SETTINGS = load_settings()
+exchange_id = SETTINGS.get("exchange", "kraken")
+symbol = SETTINGS.get("symbol", "BTC/USD")
+available_timeframes = ["5m", "15m", "1h", "4h", "1d"]
+default_timeframe = SETTINGS.get("timeframe", "1h")
+try:
+    default_index = available_timeframes.index(default_timeframe)
+except ValueError:
+    default_index = 2
+
+timeframe = st.sidebar.selectbox("Timeframe", available_timeframes, index=default_index)
 refresh_s = st.sidebar.slider("Refresh (seconds)", 5, 120, 20, step=5)
 show_ema = st.sidebar.checkbox("Show EMA(50/200)", value=True)
 show_sma = st.sidebar.checkbox("Show SMA(50/200)", value=True)
-st.sidebar.caption("Data source: Kraken via ccxt. Times in America/Denver.")
+st.sidebar.caption(
+    f"Data source: {exchange_id.title()} via ccxt. Times in {TZ.zone}."
+)
 
 if referral_link_raw:
     safe_link = escape(referral_link_raw, quote=True)
@@ -249,9 +261,15 @@ if st.session_state["snapshot_timeframe"] != timeframe:
     st.session_state["snapshot_timeframe"] = timeframe
 
 error_message = None
+limit = SETTINGS.get("limit", 500)
 
 try:
-    snapshot = latest_snapshot(timeframe)
+    snapshot = latest_snapshot(
+        timeframe=timeframe,
+        limit=limit,
+        exchange_id=exchange_id,
+        symbol=symbol,
+    )
     st.session_state["snapshot"] = snapshot
     st.session_state["snapshot_cached_at"] = datetime.now(TZ)
 except Exception as exc:  # noqa: BLE001 - we want to show any failure to the user
